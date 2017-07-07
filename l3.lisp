@@ -112,7 +112,7 @@
 ;; 	     (make-rectangle 0 0 1 1))
 ;;     (save-png f)))
 (defun make-picture (seglist)
-  (lambda (rect)
+  (lambda (rect &rest rest)
     (mapcar 
      (lambda (s)
        (cond ((= (length  s) 2)		     
@@ -133,10 +133,13 @@
 ;; 		 (make-picture *B*)
 ;; 		 0.5))
 (defun beside (p1 p2 a)
-  (lambda (rect width)
+  "Is there a way to pass the problem of p2 origin x-coord which 
+caused this function to receive also width, only to the scope of 
+gen-pic? How to make the information of the width useless?"
+  (lambda (rect size)
     (let* ((ax (scale a (horiz rect)))
 	   (comp-ax (scale (- 1 a) (horiz rect)))
-	   (orig2 (add-seg (origin rect) (scale width ax))))      
+	   (orig2 (add-seg (origin rect) (scale (car size) ax))))      
       (funcall p1 (make-rectangle
 		   (car (origin rect))
 		   (cdr (origin rect))		     
@@ -148,9 +151,31 @@
 		   (car comp-ax)
 		   (cdr (vert rect)))))))
 
+(defun above (p1 p2 a)
+    "Is there a way to pass the problem of p2 origin y-coord which 
+caused this function to receive also heigth, only to the scope of 
+gen-pic? How to make the information of the heigth useless?"
+  (lambda (rect size)
+    (let* ((ay (scale a (vert rect)))
+	   (comp-ay (scale (- 1 a) (vert rect)))
+	   (orig2 (add-seg (origin rect) (scale (cdr size) ay))))      
+      (funcall p1 (make-rectangle
+		   (car (origin rect))
+		   (cdr (origin rect))		     
+		   (car (horiz rect))
+		   (cdr ay)))
+      (funcall p2 (make-rectangle
+		   (car orig2)
+		   (cdr orig2)
+		   (cdr (vert rect))
+		   (cdr comp-ay))))))
+
 (defun gen-pic (cl-img)
+  "Create a canvas with size width and height, and draws the given
+closure"
   (with-open-file (f "~/work/sicp/img.png")
     (let ((width 300) (height 300))
       (with-canvas (:width width :height height)      
-	(funcall cl-img (make-rectangle 0 0 1 1) width)
+	(apply cl-img (list (make-rectangle 0 0 1 1)
+	       (cons width height)))
 	(save-png f)))))
