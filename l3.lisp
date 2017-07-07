@@ -113,19 +113,20 @@
 ;;     (save-png f)))
 (defun make-picture (seglist)
   (lambda (rect &rest rest)
-    (mapcar 
-     (lambda (s)
-       (cond ((= (length  s) 2)		     
-	      (drawline
-	       (funcall (coord-map rect) (car s))
-	       (funcall (coord-map rect) (cadr s))))
-	     ((= (length s) 4)
-	      (drawcurve
-	       (funcall (coord-map rect) (car s))
-	       (funcall (coord-map rect) (cadr s))
-	       (funcall (coord-map rect) (caddr s))
-	       (funcall (coord-map rect) (cadddr s))))))
-     seglist)))
+    (with-graphics-state
+      (mapcar 
+       (lambda (s)
+	 (cond ((= (length  s) 2)		     
+		(drawline
+		 (funcall (coord-map rect) (car s))
+		 (funcall (coord-map rect) (cadr s))))
+	       ((= (length s) 4)
+		(drawcurve
+		 (funcall (coord-map rect) (car s))
+		 (funcall (coord-map rect) (cadr s))
+		 (funcall (coord-map rect) (caddr s))
+		 (funcall (coord-map rect) (cadddr s))))))
+       seglist))))
 
 ;; Make picture 'A' and 'B' and use it the picture generator function
 ;; for a 300x300 canvas.
@@ -139,17 +140,19 @@ gen-pic? How to make the information of the width useless?"
   (lambda (rect size)
     (let* ((ax (scale a (horiz rect)))
 	   (comp-ax (scale (- 1 a) (horiz rect)))
-	   (orig2 (add-seg (origin rect) (scale (car size) ax))))      
-      (funcall p1 (make-rectangle
-		   (car (origin rect))
-		   (cdr (origin rect))		     
-		   (car ax)
-		   (cdr (vert rect))))
-      (funcall p2 (make-rectangle
-		   (car orig2)
-		   (cdr orig2)
-		   (car comp-ax)
-		   (cdr (vert rect)))))))
+	   (orig2 (add-seg (origin rect) (scale (car size) ax))))
+	(funcall p1 (make-rectangle
+		     (car (origin rect))
+		     (cdr (origin rect))		     
+		     (car ax)
+		     (cdr (vert rect)))
+		 size)
+	(funcall p2 (make-rectangle
+		     (car orig2)
+		     (cdr orig2)
+		     (car comp-ax)
+		     (cdr (vert rect)))
+		 size))))
 
 (defun above (p1 p2 a)
     "Is there a way to pass the problem of p2 origin y-coord which 
@@ -159,19 +162,21 @@ gen-pic? How to make the information of the heigth useless?"
     (let* ((ay (scale a (vert rect)))
 	   (comp-ay (scale (- 1 a) (vert rect)))
 	   (orig2 (add-seg (origin rect) (scale (cdr size) ay))))      
-      (funcall p1 (make-rectangle
-		   (car (origin rect))
-		   (cdr (origin rect))		     
-		   (car (horiz rect))
-		   (cdr ay)))
-      (funcall p2 (make-rectangle
-		   (car orig2)
-		   (cdr orig2)
-		   (cdr (vert rect))
-		   (cdr comp-ay))))))
+	(funcall p1 (make-rectangle
+		     (car (origin rect))
+		     (cdr (origin rect))		     
+		     (car (horiz rect))
+		     (cdr ay))
+		 size)
+	(funcall p2 (make-rectangle
+		     (car orig2)
+		     (cdr orig2)
+		     (car (horiz rect))
+		     (cdr comp-ay))
+		 size))))
 
 (defun gen-pic (cl-img)
-  "Create a canvas with size width and height, and draws the given
+  "Create a canvas with size 'width' and 'height', and draws the given
 closure"
   (with-open-file (f "~/work/sicp/img.png")
     (let ((width 300) (height 300))
@@ -179,3 +184,19 @@ closure"
 	(apply cl-img (list (make-rectangle 0 0 1 1)
 	       (cons width height)))
 	(save-png f)))))
+
+;; Calling beside recursively with and using gen-pic to generate it.
+;; (gen-pic (right-push (make-picture *A*) 3 0.75))
+(defun right-push (p n a)
+  "Push copies of the picture 'p' to right direction by ratio 'a',
+choose the number of recursions needed in 'n'"
+  (if (= n 0)
+      p
+      (beside p (right-push p (- n 1) a) a)))
+
+(defun up-push (p n a)
+  "Push copies of the picture 'p' in ascendent direction by ratio 'a',
+choose the number of recursions needed in 'n'"
+  (if (= n 0)
+      p
+      (above p (up-push p (- n 1) a) a)))
