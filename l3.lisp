@@ -1,3 +1,4 @@
+;; Lesson 3 - Part A
 (in-package :cl-user)
 (defpackage #:l3
   (:use :cl :vecto))
@@ -200,3 +201,56 @@ choose the number of recursions needed in 'n'"
   (if (= n 0)
       p
       (above p (up-push p (- n 1) a) a)))
+
+
+;; Lesson 3 - Part B
+(defun deriv (f)
+  (lambda (x)
+    (let ((dx 0.000001))
+      (/ (- (funcall f (+ x dx))
+	    (funcall f x))
+	 dx))))
+
+(defun constant? (exp var)
+  (and (not (consp exp))
+       (not (eq exp var))))
+
+(defun same-var? (exp var)
+  (and (not (consp  exp))
+       (eq exp var)))
+
+(defun sum? (exp)
+	 (eq (car exp) '+))
+
+(defun make-sum (a1 a2)
+  (list '+ a1 a2))
+
+(defun product? (exp)
+  (and (consp exp)
+       (eq (car exp) '*)))
+
+(defun make-product (a1 a2)
+  (list '* a1 a2))
+
+;; Note that in this version we only accept two arguments if we want
+;; to pass 3x to we should do:
+;; (deriv '(+ (+ x x) x) 'x) or (deriv '(* 3 x) 'x)
+;; but not (deriv '(+ x x x) 'x)
+;; but that can be easily done mapping the input
+(defun deriv (exp var)
+  (cond ((constant? exp var) 0)
+	((same-var? exp var) 1)
+	((sum? exp)
+	 (let ((a1 (cadr exp))
+	       (a2 (caddr exp)))
+	   (make-sum (deriv a1 var)
+		     (deriv a2 var))))
+	((product? exp)
+	 (let ((a1 (cadr exp))
+	       (a2 (caddr exp)))
+	   (make-sum
+	    (make-product  (deriv a1 var)
+			   a2)
+	    (make-product  a1
+			 (deriv a2 var)))))
+	(t (format t "~s ~s" exp var))))
